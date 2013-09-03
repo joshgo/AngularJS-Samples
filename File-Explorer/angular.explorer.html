@@ -1,0 +1,132 @@
+<html>
+	<head>
+		<title>AngularJS Explorer</title>
+		<link href="http://netdna.bootstrapcdn.com/font-awesome/3.2.0/css/font-awesome.min.css" rel="stylesheet">
+		<script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+		<script>
+			var app = angular.module('app', []);
+			var replaceFlag = true;
+
+			app.directive('directory', function() {
+				return {
+					restrict: 'E',
+					replace : replaceFlag,
+					template: 
+					'<ul>' +
+						'<folder ng-repeat="_folder in model.Folders"></folder>' +
+						'<file ng-repeat="_file in model.Files"></folder>' +
+					'</ul>',
+					scope : {
+						model : '=model',
+						_remove: '&onremovefolder'
+					},
+					link : function(scope, elm, attrs) {
+						scope.onRemoveFolder = function(index) {
+							var flag = false;
+
+							if (scope.$parent.onRemoveFolder != null)
+								flag = scope.$parent.onRemoveFolder(index);
+							else
+								return scope._remove({index:index});
+
+							return flag;
+						};
+					
+						scope.fnRemoveFolder = function(index) {
+							if (!scope.onRemoveFolder(index))
+								return;
+
+							var model = scope.model;
+							model.Folders.splice(index, 1);
+						};
+					}
+				};
+			});
+			
+			app.directive('folder', function($compile) {
+				return {
+					restrict: 'E',
+					replace : replaceFlag,
+					template: '<li><i class="icon-folder-close-alt"></i> {{_folder.Name}} - <label ng-click="AddFolder()">New Folder</label> <i class="icon-trash" ng-click=RemoveFolder()></i></li>',
+					transclude: true,
+					link : function(scope, elm, attrs) {
+						scope.AddFolder = function() {
+							if (scope._folder.Folders == null)
+								scope._folder.Folders = [];
+
+							var folders = scope._folder.Folders;
+
+							folders.push({Name:'New Folder'});
+						};
+												
+						scope.AddFile = function() {
+							if (scope._folder.Files == null)
+								scope._folder.Files = [];
+							scope._folder.Files.push({Name:'New File'});
+						};
+						
+						scope.RemoveFolder = function() {
+							scope.$parent.fnRemoveFolder(scope.$index);
+						};
+						
+						var children = $compile('<directory model="_folder"></directory>')(scope);
+						elm.append(children);
+					}
+				};
+			});
+
+			app.directive('file', function() {
+				return {
+					restrict: 'E',
+					replace : replaceFlag,
+					template: '<li><i class="icon-file-alt"></i> {{_file.Name}}</li>'
+				};
+			});
+		</script>
+		
+		<script>
+			app.controller('MyController', function($scope) {
+				$scope.Directory = {
+						Name : 'Root',
+						Folders:
+						[
+							{
+								Name: 'FolderA',
+								Folders:
+								[
+									{Name: 'FolderA-1', Files:[]},
+									{Name: 'FolderA-2', Files:[]},
+									{Name: 'FolderA-3', Files:[]},
+								],
+								Files:[]
+							},
+							{Name: 'FolderB', Folders:[], Files:[]},
+							{Name: 'FolderC', Folders:[], Files:[]}
+						],
+						Files: [
+							{Name: 'FileA'},
+							{Name: 'FileB'}
+						]
+					};
+
+				$scope.removeFolder = function(index) {
+					alert('controller ' + index);
+					return true;
+				};
+
+				$scope.AddFolder = function() {
+					$scope.Directory.Folders.push({Name:'New'});
+				};
+			});
+		</script>
+		<style>
+			li { list-style-type: none; }
+		</style>
+	</head>
+	<body ng-app="app">
+		<div ng-controller="MyController">
+			<directory model="Directory" onremovefolder="removeFolder(index)"></directory>
+		</div>
+	</body>
+</html>
